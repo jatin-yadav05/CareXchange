@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ToastProvider } from "@/components/Toast";
 import NextTopLoader from 'nextjs-toploader';
+import { Analytics } from '@vercel/analytics/next';
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,6 +33,7 @@ export default function RootLayout({ children }) {
               shadow="0 0 10px #40cab7,0 0 5px #40cab7"
               />
               {children}
+              <Analytics />
           </main>
           <Footer />
         </ToastProvider>
