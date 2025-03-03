@@ -728,20 +728,24 @@ const DonatePage = () => {
   useEffect(() => {
     if (!isClient) return;
 
-    const savedStep = localStorage.getItem('donateFormStep');
-    const savedFormData = localStorage.getItem('donateFormData');
-    const savedPreviews = localStorage.getItem('donateFormPreviews');
+    try {
+      const savedStep = localStorage?.getItem('donateFormStep');
+      const savedFormData = localStorage?.getItem('donateFormData');
+      const savedPreviews = localStorage?.getItem('donateFormPreviews');
 
-    if (savedStep) {
-      setCurrentStep(parseInt(savedStep));
-    }
-    if (savedFormData) {
-      const parsedData = JSON.parse(savedFormData);
-      setFormData(parsedData);
-      setInitialFormData(parsedData);
-    }
-    if (savedPreviews) {
-      setPreview(JSON.parse(savedPreviews));
+      if (savedStep) {
+        setCurrentStep(parseInt(savedStep));
+      }
+      if (savedFormData) {
+        const parsedData = JSON.parse(savedFormData);
+        setFormData(parsedData);
+        setInitialFormData(parsedData);
+      }
+      if (savedPreviews) {
+        setPreview(JSON.parse(savedPreviews));
+      }
+    } catch (error) {
+      console.error('Error loading saved data:', error);
     }
   }, [isClient]);
 
@@ -749,15 +753,20 @@ const DonatePage = () => {
   useEffect(() => {
     if (!isClient) return;
 
-    setIsSaving(true);
-    const saveTimeout = setTimeout(() => {
-      localStorage.setItem('donateFormData', JSON.stringify(formData));
-      localStorage.setItem('donateFormStep', currentStep.toString());
-      localStorage.setItem('donateFormPreviews', JSON.stringify(preview));
-      setIsSaving(false);
-    }, 1000);
+    try {
+      setIsSaving(true);
+      const saveTimeout = setTimeout(() => {
+        localStorage?.setItem('donateFormData', JSON.stringify(formData));
+        localStorage?.setItem('donateFormStep', currentStep.toString());
+        localStorage?.setItem('donateFormPreviews', JSON.stringify(preview));
+        setIsSaving(false);
+      }, 1000);
 
-    return () => clearTimeout(saveTimeout);
+      return () => clearTimeout(saveTimeout);
+    } catch (error) {
+      console.error('Error saving data:', error);
+      setIsSaving(false);
+    }
   }, [formData, currentStep, preview, isClient]);
 
   const formHasChanges = () => {
@@ -768,13 +777,17 @@ const DonatePage = () => {
   const resetForm = () => {
     if (!isClient) return;
     
-    localStorage.removeItem('donateFormStep');
-    localStorage.removeItem('donateFormData');
-    localStorage.removeItem('donateFormPreviews');
-    setCurrentStep(0);
-    setFormData(defaultFormData);
-    setInitialFormData(defaultFormData);
-    setPreview([]);
+    try {
+      localStorage?.removeItem('donateFormStep');
+      localStorage?.removeItem('donateFormData');
+      localStorage?.removeItem('donateFormPreviews');
+      setCurrentStep(0);
+      setFormData(defaultFormData);
+      setInitialFormData(defaultFormData);
+      setPreview([]);
+    } catch (error) {
+      console.error('Error resetting form:', error);
+    }
   };
 
   const handleNext = () => {
@@ -868,8 +881,9 @@ const DonatePage = () => {
   };
 
   const saveFormData = (data) => {
+    if (!isClient) return;
     try {
-      localStorage.setItem('donateFormData', JSON.stringify(data));
+      localStorage?.setItem('donateFormData', JSON.stringify(data));
     } catch (error) {
       toast.error('Failed to save form data. Please clear some browser data.');
     }

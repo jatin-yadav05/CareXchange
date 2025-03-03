@@ -17,7 +17,9 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 
 // Initialize Leaflet icon configuration
 const initializeLeafletIcon = () => {
-  if (typeof window !== 'undefined') {
+  if (typeof window === 'undefined') return null;
+  
+  try {
     return {
       iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -27,8 +29,10 @@ const initializeLeafletIcon = () => {
       popupAnchor: [1, -34],
       shadowSize: [41, 41]
     };
+  } catch (error) {
+    console.error('Error initializing Leaflet icon:', error);
+    return null;
   }
-  return null;
 };
 
 const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
@@ -42,21 +46,29 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   useEffect(() => {
     setIsClient(true);
     if (typeof window !== 'undefined') {
-      const L = require('leaflet');
-      setCustomIcon(new L.Icon(initializeLeafletIcon()));
+      try {
+        const L = require('leaflet');
+        setCustomIcon(new L.Icon(initializeLeafletIcon()));
+      } catch (error) {
+        console.error('Error setting up Leaflet:', error);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (!isClient) return;
     
-    if (navigator.permissions && navigator.permissions.query) {
+    if (typeof navigator !== 'undefined' && navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: 'geolocation' })
         .then((result) => {
           setLocationPermission(result.state);
           result.onchange = () => {
             setLocationPermission(result.state);
           };
+        })
+        .catch(error => {
+          console.error('Error querying location permission:', error);
+          setLocationPermission('prompt');
         });
     }
   }, [isClient]);
