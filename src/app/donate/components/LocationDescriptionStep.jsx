@@ -31,7 +31,7 @@ const useMapEvents = dynamic(
 
 // Dynamically import L to avoid SSR issues
 const L = dynamic(
-  () => import('leaflet').then((mod) => mod),
+  () => import('leaflet').then((L) => L.default),
   { ssr: false }
 );
 
@@ -50,18 +50,22 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   useEffect(() => {
     setIsClient(true);
     // Initialize Leaflet marker icon after component mounts
-    if (typeof window !== 'undefined') {
-      setMarkerIcon(L.icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        tooltipAnchor: [16, -28],
-        shadowSize: [41, 41]
-      }));
-    }
+    const initializeMarkerIcon = async () => {
+      if (typeof window !== 'undefined') {
+        const L = await import('leaflet').then((mod) => mod.default);
+        setMarkerIcon(L.icon({
+          iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+          iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          tooltipAnchor: [16, -28],
+          shadowSize: [41, 41]
+        }));
+      }
+    };
+    initializeMarkerIcon();
   }, []);
 
   const reverseGeocode = async (lat, lng) => {
