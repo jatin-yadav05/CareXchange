@@ -12,9 +12,12 @@ export async function GET(request) {
       console.log('Database connected successfully');
     } catch (dbError) {
       console.error('Database connection error:', dbError);
-      return NextResponse.json(
-        { error: 'Database connection failed' },
-        { status: 503 }
+      return new NextResponse(
+        JSON.stringify({ error: 'Database connection failed: ' + dbError.message }),
+        { 
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
@@ -32,9 +35,12 @@ export async function GET(request) {
       console.log(`Found ${medicines.length} available medicines`);
     } catch (queryError) {
       console.error('Error querying medicines:', queryError);
-      return NextResponse.json(
-        { error: 'Failed to fetch medicines from database' },
-        { status: 500 }
+      return new NextResponse(
+        JSON.stringify({ error: 'Failed to fetch medicines from database: ' + queryError.message }),
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
@@ -64,13 +70,22 @@ export async function GET(request) {
       console.log('Successfully formatted medicines data');
     } catch (formatError) {
       console.error('Error formatting medicines:', formatError);
-      return NextResponse.json(
-        { error: 'Failed to format medicine data' },
-        { status: 500 }
+      return new NextResponse(
+        JSON.stringify({ error: 'Failed to format medicine data: ' + formatError.message }),
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
-    return NextResponse.json(formattedMedicines);
+    return new NextResponse(
+      JSON.stringify(formattedMedicines),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
 
   } catch (error) {
     console.error('Error in GET /api/medicines:', error);
@@ -80,16 +95,19 @@ export async function GET(request) {
     let statusCode = 500;
 
     if (error.name === 'ValidationError') {
-      errorMessage = 'Invalid data format';
+      errorMessage = 'Invalid data format: ' + error.message;
       statusCode = 400;
     } else if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-      errorMessage = 'Database error';
+      errorMessage = 'Database error: ' + error.message;
       statusCode = 503;
     }
 
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: statusCode }
+    return new NextResponse(
+      JSON.stringify({ error: errorMessage }),
+      { 
+        status: statusCode,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }

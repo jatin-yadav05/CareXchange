@@ -26,34 +26,42 @@ if (!cached) {
 
 async function dbConnect() {
   if (cached.conn) {
+    console.log('Using cached database connection');
     return cached.conn;
   }
 
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      family: 4,
+      retryWrites: true,
+      retryReads: true
     };
 
     try {
+      console.log('Connecting to MongoDB...');
       cached.promise = mongoose.connect(MONGODB_URI, opts);
       cached.conn = await cached.promise;
-      console.log('Connected to MongoDB successfully');
+      console.log('Successfully connected to MongoDB');
       return cached.conn;
     } catch (error) {
       console.error('MongoDB connection error:', error);
       cached.promise = null;
-      throw error;
+      throw new Error('Failed to connect to database: ' + error.message);
     }
   }
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+    return cached.conn;
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
     cached.promise = null;
-    throw e;
+    throw new Error('Failed to connect to database: ' + error.message);
   }
-
-  return cached.conn;
 }
 
 export default dbConnect; 

@@ -22,22 +22,35 @@ const MedicinesPage = () => {
     const fetchMedicines = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/medicines');
-        const data = await response.json();
+        const response = await fetch('/api/medicines', {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        let data;
+        try {
+          const textResponse = await response.text();
+          data = JSON.parse(textResponse);
+        } catch (parseError) {
+          console.error('Error parsing response:', parseError);
+          throw new Error(`Invalid JSON response: ${parseError.message}`);
+        }
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch medicines');
+          throw new Error(data.error || `Server error: ${response.status}`);
         }
 
         if (!Array.isArray(data)) {
-          throw new Error('Invalid response format');
+          console.error('Invalid data format:', data);
+          throw new Error('Server returned invalid data format');
         }
 
         console.log('Fetched medicines:', data); // Debug log
         setMedicines(data);
       } catch (error) {
         console.error('Error fetching medicines:', error);
-        toast.error(error.message || 'Failed to load medicines');
+        toast.error(`Failed to load medicines: ${error.message}`);
         setMedicines([]); // Set empty array on error
       } finally {
         setLoading(false);
