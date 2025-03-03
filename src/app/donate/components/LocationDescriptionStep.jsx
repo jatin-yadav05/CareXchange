@@ -6,6 +6,19 @@ import { toast } from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { debounce } from 'lodash';
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet marker icon issue
+const markerIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png', 
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41]
+});
 
 // Commented out map components
 const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { 
@@ -14,13 +27,75 @@ const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer),
 });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const useMapEvents = dynamic(() => import('react-leaflet').then(mod => mod.useMapEvents), { ssr: false });
 
 const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   const [isClient, setIsClient] = useState(false);
+  const [position, setPosition] = useState(null);
+  const [address, setAddress] = useState('');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setPosition([latitude, longitude]);
+          reverseGeocode(latitude, longitude);
+        },
+        (error) => {
+          toast.error('Unable to get location. Please enter manually.');
+          setPosition([0, 0]); // Default position
+        }
+      );
+    }
+  };
+
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+      );
+      const data = await response.json();
+      const fullAddress = data.display_name;
+      setAddress(fullAddress);
+      setFormData(prev => ({
+        ...prev,
+        location: fullAddress
+      }));
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+    }
+  };
+
+  const LocationMarker = () => {
+    const map = useMapEvents({
+      click(e) {
+        const { lat, lng } = e.latlng;
+        setPosition([lat, lng]);
+        reverseGeocode(lat, lng);
+      }
+    });
+
+    return position ? (
+      <Marker 
+        position={position}
+        icon={markerIcon}
+        draggable={true}
+        eventHandlers={{
+          dragend: (e) => {
+            const marker = e.target;
+            const position = marker.getLatLng();
+            setPosition([position.lat, position.lng]);
+            reverseGeocode(position.lat, position.lng);
+          },
+        }}
+      />
+    ) : null;
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -59,22 +134,51 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Location & Additional Details</h3>
 
+        {position && (
+          <div className="mb-6 h-[400px] relative">
+            <Map
+              center={position}
+              zoom={13}
+              className="h-full rounded-lg"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <LocationMarker />
+            </Map>
+          </div>
+        )}
+
         <div className="mb-6">
           <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
             Pickup Location *
           </label>
-          <input
-            type="text"
-            id="location"
-            name="location"
-            value={formData.location}
-            onChange={handleInputChange}
-            required
-            className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
-            placeholder="Enter your complete address"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              required
+              className="w-full p-3 pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
+              placeholder="Enter your complete address"
+            />
+            <button
+              type="button"
+              onClick={getCurrentLocation}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700"
+              title="Get current location"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
           <p className="mt-2 text-sm text-gray-500">
-            Please provide a complete address to help recipients find medicines near them
+            Click on the map to set location or drag the marker to adjust position
           </p>
         </div>
 
@@ -122,4 +226,4 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   );
 };
 
-export default LocationDescriptionStep; 
+export default LocationDescriptionStep;
