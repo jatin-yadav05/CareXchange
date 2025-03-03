@@ -23,15 +23,22 @@ const MedicinesPage = () => {
       try {
         setLoading(true);
         const response = await fetch('/api/medicines');
-        if (!response.ok) {
-          throw new Error('Failed to fetch medicines');
-        }
         const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch medicines');
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid response format');
+        }
+
         console.log('Fetched medicines:', data); // Debug log
         setMedicines(data);
       } catch (error) {
         console.error('Error fetching medicines:', error);
-        toast.error('Failed to load medicines');
+        toast.error(error.message || 'Failed to load medicines');
+        setMedicines([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -67,52 +74,62 @@ const MedicinesPage = () => {
 
   // Filter medicines based on search query and filters
   const filteredMedicines = medicines.filter(medicine => {
-    if (!medicine) return false;
+    if (!medicine || typeof medicine !== 'object') return false;
     
-    const matchesSearch = searchQuery === '' || 
-      medicine.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      medicine.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      medicine.donor?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    try {
+      const matchesSearch = searchQuery === '' || 
+        (medicine.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (medicine.category?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (medicine.donor?.name?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
-    const matchesCategory = filters.category === '' || 
-      medicine.category?.toLowerCase() === filters.category.toLowerCase();
+      const matchesCategory = filters.category === '' || 
+        (medicine.category?.toLowerCase() || '') === filters.category.toLowerCase();
 
-    const matchesCondition = filters.condition === '' || 
-      medicine.condition === filters.condition;
+      const matchesCondition = filters.condition === '' || 
+        medicine.condition === filters.condition;
 
-    const matchesAvailability = !filters.availability || medicine.status === 'available';
+      const matchesAvailability = !filters.availability || medicine.status === 'available';
 
-    const matchesPriceRange = filters.priceRange === '' || (() => {
-      if (filters.priceRange === 'free') return medicine.isFree;
-      const [min, max] = filters.priceRange.split('-').map(Number);
-      const price = medicine.originalPrice || 0;
-      if (!max) return price >= min;
-      return price >= min && price <= max;
-    })();
+      const matchesPriceRange = filters.priceRange === '' || (() => {
+        if (filters.priceRange === 'free') return medicine.isFree;
+        const [min, max] = filters.priceRange.split('-').map(Number);
+        const price = medicine.originalPrice || 0;
+        if (!max) return price >= min;
+        return price >= min && price <= max;
+      })();
 
-    return matchesSearch && matchesCategory && matchesCondition && 
-           matchesAvailability && matchesPriceRange;
+      return matchesSearch && matchesCategory && matchesCondition && 
+             matchesAvailability && matchesPriceRange;
+    } catch (error) {
+      console.error('Error filtering medicine:', error, medicine);
+      return false;
+    }
   });
 
   // Sort filtered medicines
   const sortedMedicines = [...filteredMedicines].sort((a, b) => {
-    if (!a || !b) return 0;
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return 0;
     
-    switch (sortBy) {
-      case 'price-low':
-        return (a.originalPrice || 0) - (b.originalPrice || 0);
-      case 'price-high':
-        return (b.originalPrice || 0) - (a.originalPrice || 0);
-      case 'trust-score':
-        const aScore = a.ratings?.length > 0 
-          ? a.ratings.reduce((acc, curr) => acc + curr.rating, 0) / a.ratings.length 
-          : 0;
-        const bScore = b.ratings?.length > 0 
-          ? b.ratings.reduce((acc, curr) => acc + curr.rating, 0) / b.ratings.length 
-          : 0;
-        return bScore - aScore;
-      default: // 'latest'
-        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    try {
+      switch (sortBy) {
+        case 'price-low':
+          return (a.originalPrice || 0) - (b.originalPrice || 0);
+        case 'price-high':
+          return (b.originalPrice || 0) - (a.originalPrice || 0);
+        case 'trust-score':
+          const aScore = Array.isArray(a.ratings) && a.ratings.length > 0 
+            ? a.ratings.reduce((acc, curr) => acc + (curr.rating || 0), 0) / a.ratings.length 
+            : 0;
+          const bScore = Array.isArray(b.ratings) && b.ratings.length > 0 
+            ? b.ratings.reduce((acc, curr) => acc + (curr.rating || 0), 0) / b.ratings.length 
+            : 0;
+          return bScore - aScore;
+        default: // 'latest'
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+    } catch (error) {
+      console.error('Error sorting medicines:', error, { a, b });
+      return 0;
     }
   });
 
