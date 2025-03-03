@@ -37,6 +37,12 @@ const defaultFormData = {
 
 // Step components will be defined here
 const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
     if (rejectedFiles.length > 0) {
       toast.error('Some files were rejected. Please check file type and size.');
@@ -47,9 +53,9 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
     }));
 
     // Create preview URLs only on client side
-    if (typeof window !== 'undefined') {
-    const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
-    setPreview(prev => [...prev, ...newPreviews]);
+    if (isClient) {
+      const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
+      setPreview(prev => [...prev, ...newPreviews]);
     }
 
     // Simulate OCR processing
@@ -71,7 +77,7 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
         expiryDate: '2024-12-31',
       }));
     }, 2000);
-  }, [setFormData, setPreview, onNext]);
+  }, [setFormData, setPreview, isClient]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -92,12 +98,11 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
 
   // Clean up object URLs
   useEffect(() => {
+    if (!isClient) return;
     return () => {
-      if (typeof window !== 'undefined') {
-        preview.forEach(url => URL.revokeObjectURL(url));
-      }
+      preview.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [preview]);
+  }, [preview, isClient]);
 
   return (
     <motion.div
@@ -701,9 +706,17 @@ const DonatePage = () => {
   const [preview, setPreview] = useState([]);
   const [initialFormData, setInitialFormData] = useState(defaultFormData);
   const [isSaving, setIsSaving] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Set isClient to true once the component mounts
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Load saved data from localStorage after component mounts
   useEffect(() => {
+    if (!isClient) return;
+
     const savedStep = localStorage.getItem('donateFormStep');
     const savedFormData = localStorage.getItem('donateFormData');
     const savedPreviews = localStorage.getItem('donateFormPreviews');
@@ -719,40 +732,52 @@ const DonatePage = () => {
     if (savedPreviews) {
       setPreview(JSON.parse(savedPreviews));
     }
-  }, []);
+  }, [isClient]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsSaving(true);
-      const saveTimeout = setTimeout(() => {
-        localStorage.setItem('donateFormData', JSON.stringify(formData));
-        localStorage.setItem('donateFormStep', currentStep.toString());
-        localStorage.setItem('donateFormPreviews', JSON.stringify(preview));
-        setIsSaving(false);
-      }, 1000);
+    if (!isClient) return;
 
-      return () => clearTimeout(saveTimeout);
-    }
-  }, [formData, currentStep, preview]);
+    setIsSaving(true);
+    const saveTimeout = setTimeout(() => {
+      localStorage.setItem('donateFormData', JSON.stringify(formData));
+      localStorage.setItem('donateFormStep', currentStep.toString());
+      localStorage.setItem('donateFormPreviews', JSON.stringify(preview));
+      setIsSaving(false);
+    }, 1000);
+
+    return () => clearTimeout(saveTimeout);
+  }, [formData, currentStep, preview, isClient]);
 
   // Add beforeunload event listener
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleBeforeUnload = (e) => {
-        if (formHasChanges()) {
-          e.preventDefault();
-          e.returnValue = '';
-        }
-      };
+    if (!isClient) return;
 
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }
-  }, [formData, initialFormData]);
+    const handleBeforeUnload = (e) => {
+      if (formHasChanges()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formData, initialFormData, isClient]);
 
   const formHasChanges = () => {
     return JSON.stringify(formData) !== JSON.stringify(initialFormData);
+  };
+
+  const resetForm = () => {
+    if (!isClient) return;
+    
+    localStorage.removeItem('donateFormStep');
+    localStorage.removeItem('donateFormData');
+    localStorage.removeItem('donateFormPreviews');
+    setCurrentStep(0);
+    setFormData(defaultFormData);
+    setInitialFormData(defaultFormData);
+    setPreview([]);
   };
 
   const handleNext = () => {
@@ -761,16 +786,6 @@ const DonatePage = () => {
 
   const handleBack = () => {
     setCurrentStep(prev => prev - 1);
-  };
-
-  const resetForm = () => {
-    localStorage.removeItem('donateFormStep');
-    localStorage.removeItem('donateFormData');
-    localStorage.removeItem('donateFormPreviews');
-    setCurrentStep(0);
-    setFormData(defaultFormData);
-    setInitialFormData(defaultFormData);
-    setPreview([]);
   };
 
   const handleSubmit = async () => {
