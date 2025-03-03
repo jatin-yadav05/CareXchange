@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-// import dynamic from 'next/dynamic';
-// import { debounce } from 'lodash';
-// import 'leaflet/dist/leaflet.css';
+import dynamic from 'next/dynamic';
+import { debounce } from 'lodash';
+import 'leaflet/dist/leaflet.css';
 
 // Commented out map components
-// const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { 
-//   ssr: false,
-//   loading: () => <div className="h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">Loading map...</div>
-// });
-// const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-// const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { 
+  ssr: false,
+  loading: () => <div className="h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">Loading map...</div>
+});
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 
 const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   const [isClient, setIsClient] = useState(false);
