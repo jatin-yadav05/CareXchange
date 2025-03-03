@@ -46,6 +46,7 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   const [position, setPosition] = useState(null);
   const [address, setAddress] = useState('');
   const [markerIcon, setMarkerIcon] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);

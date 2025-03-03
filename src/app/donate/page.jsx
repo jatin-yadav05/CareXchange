@@ -7,24 +7,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import 'leaflet/dist/leaflet.css';
-import dynamic from 'next/dynamic';
-
 // Dynamically import the LocationDescriptionStep with no SSR
 import LocationDescriptionStep from './components/LocationDescriptionStep';
 
 // Initialize defaultFormData outside of component to avoid window reference
 const defaultFormData = {
-  medicineName: '',
-  category: '',
-  quantity: '',
-  expiryDate: '',
-  condition: 'new',
-  price: '',
-  isDonation: false,
-  medicineImages: [],
-  description: '',
-  location: ''
+    medicineName: '',
+    category: '',
+    quantity: '',
+    expiryDate: '',
+    condition: 'new',
+    price: '',
+    isDonation: false,
+    medicineImages: [],
+    description: '',
+    location: ''
 };
 
 // Step components will be defined here
@@ -46,8 +43,8 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
 
     // Create preview URLs only on client side
     if (isClient) {
-      const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
-      setPreview(prev => [...prev, ...newPreviews]);
+    const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
+    setPreview(prev => [...prev, ...newPreviews]);
     }
 
     // Simulate OCR processing
@@ -115,72 +112,72 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
             <li>• Avoid glare on the package</li>
             <li>• Include expiry date clearly</li>
           </ul>
-        </div>
-        
-        {/* Dropzone */}
-        <div 
-          {...getRootProps()} 
-          className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
-            isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
-          } border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors`}
-        >
-          <div className="space-y-1 text-center">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              stroke="currentColor"
-              fill="none"
-              viewBox="0 0 48 48"
-              aria-hidden="true"
-            >
-              <path
-                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="flex flex-col items-center text-sm text-gray-600">
-              <input {...getInputProps()} />
-              {isDragActive ? (
-                <p className="text-primary">Drop the files here ...</p>
-              ) : (
-                <>
-                  <p className="font-medium text-primary hover:text-primary-600">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB each</p>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+                </div>
 
-        {/* Image Preview */}
-        {preview.length > 0 && (
+        {/* Dropzone */}
+                  <div 
+                    {...getRootProps()} 
+                    className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
+                      isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
+                    } border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors`}
+                  >
+                    <div className="space-y-1 text-center">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        stroke="currentColor"
+                        fill="none"
+                        viewBox="0 0 48 48"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <div className="flex flex-col items-center text-sm text-gray-600">
+                        <input {...getInputProps()} />
+                        {isDragActive ? (
+                          <p className="text-primary">Drop the files here ...</p>
+                        ) : (
+                          <>
+                            <p className="font-medium text-primary hover:text-primary-600">
+                              Click to upload or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB each</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image Preview */}
+                  {preview.length > 0 && (
           <div className="mt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Uploaded Images:</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {preview.map((url, index) => (
+                      {preview.map((url, index) => (
                 <div key={index} className="relative group">
-                  <img
-                    src={url}
-                    alt={`Preview ${index + 1}`}
+                          <img
+                            src={url}
+                            alt={`Preview ${index + 1}`}
                     className="h-24 w-24 object-cover rounded-lg ring-1 ring-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
             </div>
-          </div>
-        )}
+                    </div>
+                  )}
 
         {/* Next Button */}
         <div className="mt-6 flex justify-end">
@@ -196,7 +193,7 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
             </svg>
           </button>
         </div>
-      </div>
+                </div>
     </motion.div>
   );
 };
@@ -238,18 +235,18 @@ const MedicineDetailsStep = ({ formData, setFormData, onNext, onBack }) => {
         <div className="mb-4">
           <label htmlFor="medicineName" className="block text-sm font-medium text-gray-700 mb-1">
             Medicine Name *
-          </label>
-          <input
-            type="text"
+                  </label>
+                  <input
+                    type="text"
             id="medicineName"
             name="medicineName"
             value={formData.medicineName}
-            onChange={handleInputChange}
-            required
+                    onChange={handleInputChange}
+                    required
             className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
             placeholder="Enter medicine name"
-          />
-        </div>
+                  />
+                </div>
 
         {/* Category */}
         <div className="mb-4">
@@ -712,32 +709,14 @@ const DonatePage = () => {
   const [initialFormData, setInitialFormData] = useState(defaultFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [isClient, setIsClient] = useState(false);
-
-  // Check authentication on component mount
-  useEffect(() => {
-    if (!isAuthenticated) {
-      // Redirect to login with return URL
-      const returnUrl = encodeURIComponent('/donate');
-      router.push(`/login?returnUrl=${returnUrl}`);
-    }
-  }, [isAuthenticated, router]);
-
-  // If not authenticated, show loading or redirect
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Please log in to continue</h2>
-          <p className="text-gray-600">Redirecting to login page...</p>
-        </div>
-      </div>
-    );
-  }
+  const [isLoading, setIsLoading] = useState(true);
 
   // Set isClient to true once the component mounts
   useEffect(() => {
     setIsClient(true);
+    setIsLoading(false);
   }, []);
+
 
   // Load saved data from localStorage after component mounts
   useEffect(() => {
@@ -784,6 +763,29 @@ const DonatePage = () => {
     }
   }, [formData, currentStep, preview, isClient]);
 
+  // Loading state
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <div className="text-center">
+  //         <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // Authentication check
+  // if (!isAuthenticated) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <div className="text-center">
+  //         <h2 className="text-xl font-semibold mb-2">Please log in to continue</h2>
+  //         <p className="text-gray-600">Redirecting to login page...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
   const formHasChanges = () => {
     if (!isClient) return false;
     return JSON.stringify(formData) !== JSON.stringify(initialFormData);
@@ -815,10 +817,8 @@ const DonatePage = () => {
 
   const handleSubmit = async () => {
     try {
-      // Show loading toast
       toast.loading('Submitting your donation...');
 
-      // Prepare form data to match schema
       const donationData = {
         medicine: formData.medicineName,
         quantity: parseInt(formData.quantity),
@@ -826,16 +826,15 @@ const DonatePage = () => {
         condition: formData.condition,
         description: formData.description || '',
         location: formData.location,
-        images: [], // We'll handle image upload separately
+        images: [],
       };
 
-      // Submit to API
       const response = await fetch('/api/donations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Important: include credentials for cookies
+        credentials: 'include',
         body: JSON.stringify(donationData),
       });
 
@@ -845,25 +844,19 @@ const DonatePage = () => {
         throw new Error(data.error || data.details || 'Failed to submit donation');
       }
 
-      // Show success message
       toast.dismiss();
       toast.success('Donation submitted successfully!');
-
-      // Redirect to medicines page after successful submission
       router.push('/medicines');
-
-      // Reset form
       resetForm();
 
     } catch (error) {
-      // Show error message
       toast.dismiss();
       console.error('Error details:', error);
       toast.error(error.message || 'Failed to submit donation. Please try again.');
     }
   };
 
-  // Define steps array after the handler functions
+  // Define steps array
   const steps = [
     {
       title: 'Upload Images',
@@ -912,38 +905,11 @@ const DonatePage = () => {
     }
   ];
 
-  const validateExpiryDate = (date) => {
-    const today = new Date();
-    const expiryDate = new Date(date);
-    return expiryDate > today;
-  };
-
-  const validatePrice = (price) => {
-    return !isNaN(price) && price >= 0 && price <= 999999;
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      handleNext();
-    }
-  };
-
-  const saveFormData = (data) => {
-    if (!isClient) return;
-    try {
-      localStorage?.setItem('donateFormData', JSON.stringify(data));
-    } catch (error) {
-      toast.error('Failed to save form data. Please clear some browser data.');
-    }
-  };
-
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
         <div className="max-w-3xl mx-auto">
-          {/* Optional Reset Button */}
           <div className="flex justify-end mb-4">
             <button
               aria-label="Reset form"
@@ -956,11 +922,7 @@ const DonatePage = () => {
               Reset Form
             </button>
           </div>
-          
-          {/* Progress Steps */}
           <ProgressSteps steps={steps} currentStep={currentStep} />
-
-          {/* Step Content */}
           <AnimatePresence mode="wait">
             {steps[currentStep].component}
           </AnimatePresence>
