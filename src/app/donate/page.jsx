@@ -1,7 +1,8 @@
 "use client";
 
 import Navbar from '@/components/Navbar';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
 
 const DonatePage = () => {
   const [formData, setFormData] = useState({
@@ -27,22 +28,38 @@ const DonatePage = () => {
     }));
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+  const onDrop = useCallback((acceptedFiles) => {
     setFormData(prev => ({
       ...prev,
-      medicineImages: [...prev.medicineImages, ...files]
+      medicineImages: [...prev.medicineImages, ...acceptedFiles]
     }));
 
     // Create preview URLs
-    const newPreviews = files.map(file => URL.createObjectURL(file));
+    const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
     setPreview(prev => [...prev, ...newPreviews]);
-  };
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg']
+    },
+    maxSize: 10 * 1024 * 1024, // 10MB
+    multiple: true
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle form submission logic here
     console.log('Form submitted:', formData);
+  };
+
+  const removeImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      medicineImages: prev.medicineImages.filter((_, i) => i !== index)
+    }));
+    setPreview(prev => prev.filter((_, i) => i !== index));
   };
 
   const categories = [
@@ -176,7 +193,7 @@ const DonatePage = () => {
                       name="isDonation"
                       checked={formData.isDonation}
                       onChange={handleInputChange}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 text-primary focus:ring-primary"
                     />
                     <label htmlFor="isDonation" className="ml-3">
                       This is a free donation
@@ -186,7 +203,7 @@ const DonatePage = () => {
                   {!formData.isDonation && (
                     <div>
                       <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-                        Price (USD) *
+                        Price (₹) *
                       </label>
                       <input
                         type="number"
@@ -197,8 +214,8 @@ const DonatePage = () => {
                         min="0"
                         step="0.01"
                         required={!formData.isDonation}
-                        className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter price"
+                        className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                        placeholder="Enter price in Rupees"
                       />
                     </div>
                   )}
@@ -209,7 +226,12 @@ const DonatePage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Medicine Images *
                   </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                  <div 
+                    {...getRootProps()} 
+                    className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
+                      isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
+                    } border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors`}
+                  >
                     <div className="space-y-1 text-center">
                       <svg
                         className="mx-auto h-12 w-12 text-gray-400"
@@ -225,26 +247,19 @@ const DonatePage = () => {
                           strokeLinejoin="round"
                         />
                       </svg>
-                      <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="medicine-images"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                        >
-                          <span>Upload images</span>
-                          <input
-                            id="medicine-images"
-                            name="medicineImages"
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="sr-only"
-                            required
-                          />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
+                      <div className="flex flex-col items-center text-sm text-gray-600">
+                        <input {...getInputProps()} />
+                        {isDragActive ? (
+                          <p className="text-primary">Drop the files here ...</p>
+                        ) : (
+                          <>
+                            <p className="font-medium text-primary hover:text-primary-600">
+                              Click to upload or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB each</p>
+                          </>
+                        )}
                       </div>
-                      <p className="text-xs text-gray-500">PNG, JPG up to 10MB each</p>
                     </div>
                   </div>
                   {/* Image Preview */}
@@ -257,6 +272,15 @@ const DonatePage = () => {
                             alt={`Preview ${index + 1}`}
                             className="h-24 w-24 object-cover rounded-lg"
                           />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
                         </div>
                       ))}
                     </div>

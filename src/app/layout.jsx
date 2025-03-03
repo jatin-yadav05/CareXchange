@@ -2,10 +2,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ToastProvider } from "@/components/Toast";
 import NextTopLoader from 'nextjs-toploader';
 import { Analytics } from '@vercel/analytics/next';
-
+import Providers from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +17,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.className} bg-gray-50 flex flex-col min-h-screen`}>
-        <ToastProvider>
+        <Providers>
           <Navbar />
           <main className="flex-grow pt-16">
             <NextTopLoader
@@ -31,12 +30,12 @@ export default function RootLayout({ children }) {
               showSpinner={false}
               easing="ease"
               shadow="0 0 10px #40cab7,0 0 5px #40cab7"
-              />
-              {children}
-              <Analytics />
+            />
+            {children}
+            <Analytics />
           </main>
           <Footer />
-        </ToastProvider>
+        </Providers>
       </body>
     </html>
   );

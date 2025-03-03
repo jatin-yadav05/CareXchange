@@ -1,7 +1,83 @@
-import Navbar from '@/components/Navbar';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function Login() {
+  const router = useRouter();
+  const { login, user, loading } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    rememberMe: false
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message) {
+      addToast({
+        type: 'info',
+        message: message,
+        duration: 5000
+      });
+    }
+  }, [searchParams, addToast]);
+
+  useEffect(() => {
+    if (user && !loading) {
+      const from = searchParams.get('from') || '/';
+      router.replace(from);
+    }
+  }, [user, loading, router, searchParams]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await login(formData.email, formData.password);
+      // Login successful - redirect will be handled by the AuthContext
+    } catch (err) {
+      setError(err.message || 'Failed to login');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </main>
+    );
+  }
+
+  // Don't render the form if user is authenticated
+  if (user) {
+    return null;
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
@@ -19,7 +95,7 @@ export default function Login() {
               </p>
             </div>
 
-            <form className="space-y-6 mt-8" action="#" method="POST">
+            <form className="space-y-6 mt-8" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
@@ -31,6 +107,8 @@ export default function Login() {
                     type="email"
                     autoComplete="email"
                     required
+                    value={formData.email}
+                    onChange={handleChange}
                     className="input-primary w-full"
                   />
                 </div>
@@ -47,6 +125,8 @@ export default function Login() {
                     type="password"
                     autoComplete="current-password"
                     required
+                    value={formData.password}
+                    onChange={handleChange}
                     className="input-primary w-full"
                   />
                 </div>
@@ -55,12 +135,14 @@ export default function Login() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
-                    id="remember-me"
-                    name="remember-me"
+                    id="rememberMe"
+                    name="rememberMe"
                     type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={handleChange}
                     className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                   />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                  <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
                     Remember me
                   </label>
                 </div>
@@ -72,12 +154,19 @@ export default function Login() {
                 </div>
               </div>
 
+              {error && (
+                <div className="text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+
               <div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign in
+                  {isLoading ? 'Signing in...' : 'Sign in'}
                 </button>
               </div>
             </form>
@@ -94,7 +183,11 @@ export default function Login() {
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <div>
-                  <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                  <button 
+                    type="button"
+                    onClick={() => setError('Social login coming soon!')}
+                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
                     <span className="sr-only">Sign in with Google</span>
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path
@@ -106,7 +199,11 @@ export default function Login() {
                 </div>
 
                 <div>
-                  <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                  <button 
+                    type="button"
+                    onClick={() => setError('Social login coming soon!')}
+                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
                     <span className="sr-only">Sign in with Facebook</span>
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path

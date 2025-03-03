@@ -103,12 +103,12 @@ export default function Home() {
           </div>
         </div>
         {/* Illustration 1 */}
-        <div className="absolute h-full w-[33%] bottom-0 right-0">
-          <img src="/illustrations/hero.svg" alt="CareXchange Illustration" className="w-full h-auto" />
+        <div className="absolute h-full bottom-0 -right-10 hidden lg:block">
+          <img src="/illustrations/hero.svg" alt="CareXchange Illustration" className="w-full h-full" />
         </div>
         {/* Illustration 2 */}
         <div className="absolute h-3/12 left-0 bottom-0">
-          <img src="/illustrations/hero2.svg" alt="CareXchange Illustration" className="w-full h-full" />
+          <img src="/illustrations/hero2.svg" alt="CareXchange Illustration" className="w-full h-full max-lg:opacity-70 max-md:opacity-40" />
         </div>
         {/* Wave Divider */}
         {/* <div className="absolute bottom-0 left-0 right-0">

@@ -1,7 +1,104 @@
-import Navbar from '@/components/Navbar';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function Register() {
+  const router = useRouter();
+  const { signup, user, loading } = useAuth();
+  const [formData, setFormData] = useState({
+    role: 'donor',
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    address: '',
+    terms: false
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message) {
+      addToast({
+        type: 'info',
+        message: message,
+        duration: 5000
+      });
+    }
+  }, [searchParams, addToast]);
+
+  useEffect(() => {
+    if (user && !loading) {
+      const from = searchParams.get('from') || '/';
+      router.replace(from);
+    }
+  }, [user, loading, router, searchParams]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value.trim()
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Validate terms acceptance
+      if (!formData.terms) {
+        throw new Error('Please accept the terms and conditions');
+      }
+
+      // Validate role
+      if (!['donor', 'recipient', 'admin'].includes(formData.role)) {
+        throw new Error('Invalid role selected');
+      }
+
+      await signup(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.role,
+        formData.phone,
+        formData.address
+      );
+      // Signup successful - redirect will be handled by the AuthContext
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </main>
+    );
+  }
+
+  // Don't render the form if user is authenticated
+  if (user) {
+    return null;
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
@@ -19,7 +116,7 @@ export default function Register() {
               </p>
             </div>
 
-            <form className="space-y-6 mt-8" action="#" method="POST">
+            <form className="space-y-6 mt-8" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="role" className="block text-sm font-medium text-gray-700">
                   I want to
@@ -27,6 +124,8 @@ export default function Register() {
                 <select
                   id="role"
                   name="role"
+                  value={formData.role}
+                  onChange={handleChange}
                   className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
                 >
                   <option value="donor">Donate Medicine</option>
@@ -44,6 +143,8 @@ export default function Register() {
                     name="name"
                     type="text"
                     required
+                    value={formData.name}
+                    onChange={handleChange}
                     className="input-primary w-full"
                   />
                 </div>
@@ -60,6 +161,8 @@ export default function Register() {
                     type="email"
                     autoComplete="email"
                     required
+                    value={formData.email}
+                    onChange={handleChange}
                     className="input-primary w-full"
                   />
                 </div>
@@ -75,6 +178,8 @@ export default function Register() {
                     name="phone"
                     type="tel"
                     required
+                    value={formData.phone}
+                    onChange={handleChange}
                     className="input-primary w-full"
                   />
                 </div>
@@ -91,6 +196,8 @@ export default function Register() {
                     type="password"
                     autoComplete="new-password"
                     required
+                    value={formData.password}
+                    onChange={handleChange}
                     className="input-primary w-full"
                   />
                 </div>
@@ -105,6 +212,8 @@ export default function Register() {
                     id="address"
                     name="address"
                     rows={3}
+                    value={formData.address}
+                    onChange={handleChange}
                     className="input-primary w-full"
                     required
                   />
@@ -116,6 +225,8 @@ export default function Register() {
                   id="terms"
                   name="terms"
                   type="checkbox"
+                  checked={formData.terms}
+                  onChange={handleChange}
                   className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                   required
                 />
@@ -127,12 +238,19 @@ export default function Register() {
                 </label>
               </div>
 
+              {error && (
+                <div className="text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+
               <div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create Account
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
                 </button>
               </div>
             </form>
@@ -149,7 +267,11 @@ export default function Register() {
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <div>
-                  <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                  <button 
+                    type="button"
+                    onClick={() => setError('Social login coming soon!')}
+                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
                     <span className="sr-only">Sign up with Google</span>
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path
@@ -161,7 +283,11 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                  <button 
+                    type="button"
+                    onClick={() => setError('Social login coming soon!')}
+                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
                     <span className="sr-only">Sign up with Facebook</span>
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path
