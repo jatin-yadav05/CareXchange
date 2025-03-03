@@ -5,21 +5,11 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { debounce } from 'lodash';
+// import 'leaflet/dist/leaflet.css';
 import dynamic from 'next/dynamic';
 
-// Dynamically import all map components with no SSR
-const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
-
 // Dynamically import the LocationDescriptionStep with no SSR
-const LocationDescriptionStep = dynamic(
-  () => import('./components/LocationDescriptionStep').then(mod => mod.default),
-  { ssr: false, loading: () => <p>Loading map...</p> }
-);
+import LocationDescriptionStep from './components/LocationDescriptionStep';
 
 // Initialize defaultFormData outside of component to avoid window reference
 const defaultFormData = {
