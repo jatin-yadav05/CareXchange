@@ -989,110 +989,59 @@ const ProgressSteps = ({ steps, currentStep }) => {
 
 // Main component
 const DonatePage = () => {
-  // Initialize state from localStorage or use default values
-  const [currentStep, setCurrentStep] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedStep = localStorage.getItem('donateFormStep');
-      return savedStep ? parseInt(savedStep) : 0;
-    }
-    return 0;
-  });
+  // Initialize with default values first
+  const defaultFormData = {
+    medicineName: '',
+    category: '',
+    quantity: '',
+    expiryDate: '',
+    condition: 'new',
+    price: '',
+    isDonation: false,
+    medicineImages: [],
+    description: '',
+    location: ''
+  };
 
-  const [formData, setFormData] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedFormData = localStorage.getItem('donateFormData');
-      return savedFormData ? JSON.parse(savedFormData) : {
-        medicineName: '',
-        category: '',
-        quantity: '',
-        expiryDate: '',
-        condition: 'new',
-        price: '',
-        isDonation: false,
-        medicineImages: [],
-        description: '',
-        location: ''
-      };
-    }
-    return {
-      medicineName: '',
-      category: '',
-      quantity: '',
-      expiryDate: '',
-      condition: 'new',
-      price: '',
-      isDonation: false,
-      medicineImages: [],
-      description: '',
-      location: ''
-    };
-  });
-
-  const [preview, setPreview] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedPreviews = localStorage.getItem('donateFormPreviews');
-      return savedPreviews ? JSON.parse(savedPreviews) : [];
-    }
-    return [];
-  });
-
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState(defaultFormData);
+  const [preview, setPreview] = useState([]);
+  const [initialFormData, setInitialFormData] = useState(defaultFormData);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Add this new state to track initial form data
-  const [initialFormData, setInitialFormData] = useState(() => {
-    const defaultData = {
-      medicineName: '',
-      category: '',
-      quantity: '',
-      expiryDate: '',
-      condition: 'new',
-      price: '',
-      isDonation: false,
-      medicineImages: [],
-      description: '',
-      location: ''
-    };
+  // Load saved data from localStorage after component mounts
+  useEffect(() => {
+    const savedStep = localStorage.getItem('donateFormStep');
+    const savedFormData = localStorage.getItem('donateFormData');
+    const savedPreviews = localStorage.getItem('donateFormPreviews');
 
-    if (typeof window !== 'undefined') {
-      const savedFormData = localStorage.getItem('donateFormData');
-      return savedFormData ? JSON.parse(savedFormData) : defaultData;
+    if (savedStep) {
+      setCurrentStep(parseInt(savedStep));
     }
-    return defaultData;
-  });
+    if (savedFormData) {
+      const parsedData = JSON.parse(savedFormData);
+      setFormData(parsedData);
+      setInitialFormData(parsedData);
+    }
+    if (savedPreviews) {
+      setPreview(JSON.parse(savedPreviews));
+    }
+  }, []);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
     setIsSaving(true);
     const saveTimeout = setTimeout(() => {
       localStorage.setItem('donateFormData', JSON.stringify(formData));
+      localStorage.setItem('donateFormStep', currentStep.toString());
+      localStorage.setItem('donateFormPreviews', JSON.stringify(preview));
       setIsSaving(false);
     }, 1000);
 
     return () => clearTimeout(saveTimeout);
-  }, [formData]);
+  }, [formData, currentStep, preview]);
 
-  const handleNext = () => {
-    setCurrentStep(prev => prev + 1);
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('donateFormStep', (currentStep + 1).toString());
-    }
-  };
-
-  const handleBack = () => {
-    setCurrentStep(prev => prev - 1);
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('donateFormStep', (currentStep - 1).toString());
-    }
-  };
-
-  // Add this function to check if form has changes
-  const formHasChanges = () => {
-    return JSON.stringify(formData) !== JSON.stringify(initialFormData);
-  };
-
-  // Modify the useEffect for beforeunload
+  // Add beforeunload event listener
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (formHasChanges()) {
@@ -1105,31 +1054,28 @@ const DonatePage = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [formData, initialFormData]);
 
-  // Update the resetForm function to also reset initialFormData
-  const resetForm = () => {
-    const defaultData = {
-      medicineName: '',
-      category: '',
-      quantity: '',
-      expiryDate: '',
-      condition: 'new',
-      price: '',
-      isDonation: false,
-      medicineImages: [],
-      description: '',
-      location: ''
-    };
+  const formHasChanges = () => {
+    return JSON.stringify(formData) !== JSON.stringify(initialFormData);
+  };
 
+  const handleNext = () => {
+    setCurrentStep(prev => prev + 1);
+  };
+
+  const handleBack = () => {
+    setCurrentStep(prev => prev - 1);
+  };
+
+  const resetForm = () => {
     localStorage.removeItem('donateFormStep');
     localStorage.removeItem('donateFormData');
     localStorage.removeItem('donateFormPreviews');
     setCurrentStep(0);
-    setFormData(defaultData);
-    setInitialFormData(defaultData);
+    setFormData(defaultFormData);
+    setInitialFormData(defaultFormData);
     setPreview([]);
   };
 
-  // Update handleSubmit to also reset initialFormData
   const handleSubmit = async () => {
     try {
       await toast.promise(
@@ -1141,8 +1087,7 @@ const DonatePage = () => {
           error: 'Failed to submit donation. Please try again.',
         }
       );
-      // Clear stored data after successful submission
-      resetForm(); // Use the resetForm function here instead of separate removals
+      resetForm();
     } catch (error) {
       console.error('Error submitting donation:', error);
     }
