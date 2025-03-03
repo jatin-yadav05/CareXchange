@@ -17,7 +17,7 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 
 // Dynamically import the LocationDescriptionStep with no SSR
 const LocationDescriptionStep = dynamic(
-  () => import('./LocationDescriptionStep'),
+  () => import('../components/LocationDescriptionStep'),
   { ssr: false }
 );
 
