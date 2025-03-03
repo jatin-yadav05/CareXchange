@@ -475,12 +475,23 @@ const PricingConditionStep = ({ formData, setFormData, onNext, onBack }) => {
 };
 
 const ReviewStep = ({ formData, onBack, onSubmit }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    if (!isClient) return dateString;
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   return (
@@ -760,11 +771,15 @@ const DonatePage = () => {
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    // Only add event listener if we're in the browser
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
   }, [formData, initialFormData, isClient]);
 
   const formHasChanges = () => {
+    if (!isClient) return false;
     return JSON.stringify(formData) !== JSON.stringify(initialFormData);
   };
 
