@@ -15,332 +15,25 @@ const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer),
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 
-// Dynamically import the LocationDescriptionStep component with no SSR
+// Dynamically import the LocationDescriptionStep with no SSR
 const LocationDescriptionStep = dynamic(
-  () => Promise.resolve(({ formData, setFormData, onNext, onBack }) => {
-    const [position, setPosition] = useState([20.5937, 78.9629]);
-    const [locationPermission, setLocationPermission] = useState('prompt');
-    const mapRef = useRef(null);
-    const [showLocationButton, setShowLocationButton] = useState(true);
-
-    // Define handleInputChange function
-    const handleInputChange = (e) => {
-      const { name, value } = e.target;
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    };
-
-    // Check location permission on component mount
-    useEffect(() => {
-      if (typeof window !== 'undefined' && navigator.permissions && navigator.permissions.query) {
-        navigator.permissions.query({ name: 'geolocation' })
-          .then((result) => {
-            setLocationPermission(result.state);
-            result.onchange = () => {
-              setLocationPermission(result.state);
-            };
-          });
-      }
-    }, []);
-
-    const handleCurrentLocation = () => {
-      if (!navigator.geolocation) {
-        toast.error('Geolocation is not supported by your browser');
-        return;
-      }
-
-      toast.loading('Getting your location...');
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setPosition([latitude, longitude]);
-          // Use a free geocoding service like Nominatim
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-            .then(res => res.json())
-            .then(data => {
-              setFormData(prev => ({
-                ...prev,
-                location: data.display_name,
-                coordinates: { lat: latitude, lng: longitude }
-              }));
-              toast.dismiss();
-              toast.success('Location updated successfully!');
-            })
-            .catch(() => {
-              toast.dismiss();
-              toast.error('Failed to get address. Please enter manually.');
-            });
-        },
-        (error) => {
-          toast.dismiss();
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              toast.error('Please allow location access to use this feature');
-              break;
-            case error.POSITION_UNAVAILABLE:
-              toast.error('Location information is unavailable');
-              break;
-            case error.TIMEOUT:
-              toast.error('Location request timed out');
-              break;
-            default:
-              toast.error('Failed to get location. Please enter manually');
-          }
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        }
-      );
-    };
-
-    const centerToCurrentLocation = () => {
-      if (!navigator.geolocation) {
-        toast.error('Geolocation is not supported by your browser');
-        return;
-      }
-
-      toast.loading('Finding your location...');
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          if (mapRef.current) {
-            mapRef.current.setView([latitude, longitude], 16);
-            setPosition([latitude, longitude]);
-            toast.dismiss();
-            toast.success('Map centered to your location!');
-          }
-        },
-        (error) => {
-          toast.dismiss();
-          toast.error('Could not get your location. Please try again.');
-        }
-      );
-    };
-
-    // Custom marker icon
-    const customIcon = new L.Icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
-
-    // Custom Control Component for Location Button
-    const LocationControl = () => {
-      return (
-        <div className="leaflet-control leaflet-bar" style={{ 
-          margin: '10px',
-          position: 'absolute',
-          right: '10px',
-          top: '10px', // Position below zoom controls
-          zIndex: 1000 // Ensure it's above other controls
-        }}>
-          <button
-            onClick={centerToCurrentLocation}
-            className="bg-white p-2 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none transition-colors duration-200"
-            title="Center to my location"
-          >
-            <svg 
-              className="w-6 h-6 text-primary" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" 
-              />
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
-              />
-            </svg>
-          </button>
-        </div>
-      );
-    };
-
-    const isStepValid = () => {
-      return formData.location;
-    };
-
-    // Add rate limiting
-    const geocodeLocation = debounce(async (lat, lng) => {
-      try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-        if (!response.ok) throw new Error('Geocoding failed');
-        // ... rest of the code
-      } catch (error) {
-        toast.error('Failed to get address. Please try again later.');
-      }
-    }, 1000);
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        className="space-y-6"
-      >
-        <div className="bg-white p-6 rounded-lg shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Location & Additional Details</h3>
-
-          {/* Location Permission Alert */}
-          {locationPermission === 'denied' && (
-            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">Location Access Required</h3>
-                  <div className="mt-2 text-sm text-yellow-700">
-                    <p>Please enable location access in your browser settings to use the current location feature.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Location Input with Current Location Button */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-1">
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-                Pickup Location *
-              </label>
-              <button
-                type="button"
-                onClick={handleCurrentLocation}
-                disabled={locationPermission === 'denied'}
-                className={`inline-flex items-center px-3 py-1 text-sm ${
-                  locationPermission === 'denied'
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-primary hover:text-primary-600'
-                } focus:outline-none`}
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Use Current Location
-              </button>
-            </div>
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
-              placeholder="Enter your location"
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              This will help recipients find medicines near them
-            </p>
-          </div>
-
-          {/* Map */}
-          <div className="mb-6 relative">
-            <Map 
-              center={position} 
-              zoom={13} 
-              style={{ height: '300px', width: '100%' }}
-              className="rounded-lg shadow-md z-0"
-              ref={mapRef}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              />
-              <Marker 
-                position={position}
-                icon={customIcon}
-                draggable={true}
-                eventHandlers={{
-                  dragend: (e) => {
-                    const marker = e.target;
-                    const position = marker.getLatLng();
-                    setPosition([position.lat, position.lng]);
-                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`)
-                      .then(res => res.json())
-                      .then(data => {
-                        setFormData(prev => ({
-                          ...prev,
-                          location: data.display_name,
-                          coordinates: { lat: position.lat, lng: position.lng }
-                        }));
-                      });
-                  }
-                }}
-              />
-              {showLocationButton && <LocationControl />}
-            </Map>
-          </div>
-
-          {/* Description */}
-          <div className="mb-6">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Additional Details
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={4}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
-              placeholder="Add any additional details about the medicine..."
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              Include any special storage requirements or usage instructions
-            </p>
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="mt-6 flex justify-between">
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-            >
-              <svg className="mr-2 -ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={onNext}
-              disabled={!isStepValid()}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Review
-              <svg className="ml-2 -mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }),
+  () => import('./LocationDescriptionStep'),
   { ssr: false }
 );
+
+// Initialize defaultFormData outside of component to avoid window reference
+const defaultFormData = {
+  medicineName: '',
+  category: '',
+  quantity: '',
+  expiryDate: '',
+  condition: 'new',
+  price: '',
+  isDonation: false,
+  medicineImages: [],
+  description: '',
+  location: ''
+};
 
 // Step components will be defined here
 const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext }) => {
@@ -355,8 +48,8 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
 
     // Create preview URLs only on client side
     if (typeof window !== 'undefined') {
-      const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
-      setPreview(prev => [...prev, ...newPreviews]);
+    const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
+    setPreview(prev => [...prev, ...newPreviews]);
     }
 
     // Simulate OCR processing
@@ -425,72 +118,72 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
             <li>• Avoid glare on the package</li>
             <li>• Include expiry date clearly</li>
           </ul>
-        </div>
-
+                  </div>
+                  
         {/* Dropzone */}
-        <div 
-          {...getRootProps()} 
-          className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
-            isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
-          } border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors`}
-        >
-          <div className="space-y-1 text-center">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              stroke="currentColor"
-              fill="none"
-              viewBox="0 0 48 48"
-              aria-hidden="true"
-            >
-              <path
-                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="flex flex-col items-center text-sm text-gray-600">
-              <input {...getInputProps()} />
-              {isDragActive ? (
-                <p className="text-primary">Drop the files here ...</p>
-              ) : (
-                <>
-                  <p className="font-medium text-primary hover:text-primary-600">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB each</p>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+                  <div 
+                    {...getRootProps()} 
+                    className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
+                      isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
+                    } border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors`}
+                  >
+                    <div className="space-y-1 text-center">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        stroke="currentColor"
+                        fill="none"
+                        viewBox="0 0 48 48"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <div className="flex flex-col items-center text-sm text-gray-600">
+                        <input {...getInputProps()} />
+                        {isDragActive ? (
+                          <p className="text-primary">Drop the files here ...</p>
+                        ) : (
+                          <>
+                            <p className="font-medium text-primary hover:text-primary-600">
+                              Click to upload or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB each</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Image Preview */}
-        {preview.length > 0 && (
+                  {/* Image Preview */}
+                  {preview.length > 0 && (
           <div className="mt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Uploaded Images:</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {preview.map((url, index) => (
+                      {preview.map((url, index) => (
                 <div key={index} className="relative group">
-                  <img
-                    src={url}
-                    alt={`Preview ${index + 1}`}
+                          <img
+                            src={url}
+                            alt={`Preview ${index + 1}`}
                     className="h-24 w-24 object-cover rounded-lg ring-1 ring-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
             </div>
-          </div>
-        )}
+                    </div>
+                  )}
 
         {/* Next Button */}
         <div className="mt-6 flex justify-end">
@@ -506,7 +199,7 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
             </svg>
           </button>
         </div>
-      </div>
+                </div>
     </motion.div>
   );
 };
@@ -548,18 +241,18 @@ const MedicineDetailsStep = ({ formData, setFormData, onNext, onBack }) => {
         <div className="mb-4">
           <label htmlFor="medicineName" className="block text-sm font-medium text-gray-700 mb-1">
             Medicine Name *
-          </label>
-          <input
-            type="text"
+                  </label>
+                  <input
+                    type="text"
             id="medicineName"
             name="medicineName"
             value={formData.medicineName}
-            onChange={handleInputChange}
-            required
+                    onChange={handleInputChange}
+                    required
             className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
             placeholder="Enter medicine name"
-          />
-        </div>
+                  />
+                </div>
 
         {/* Category */}
         <div className="mb-4">
@@ -601,16 +294,16 @@ const MedicineDetailsStep = ({ formData, setFormData, onNext, onBack }) => {
               placeholder="Enter quantity"
             />
           </div>
-          <div>
+                <div>
             <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700 mb-1">
               Expiry Date *
-            </label>
+                  </label>
             <input
               type="date"
               id="expiryDate"
               name="expiryDate"
               value={formData.expiryDate}
-              onChange={handleInputChange}
+                    onChange={handleInputChange}
               required
               className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
             />
@@ -759,7 +452,7 @@ const PricingConditionStep = ({ formData, setFormData, onNext, onBack }) => {
             </svg>
             Back
           </button>
-          <button
+                  <button
             type="button"
             onClick={onNext}
             disabled={!isStepValid()}
@@ -769,7 +462,7 @@ const PricingConditionStep = ({ formData, setFormData, onNext, onBack }) => {
             <svg className="ml-2 -mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </button>
+                  </button>
         </div>
       </div>
     </motion.div>
@@ -939,7 +632,7 @@ const ProgressSteps = ({ steps, currentStep }) => {
                   {index < currentStep ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                  </svg>
                   ) : (
                     <span className="text-base font-semibold">{index + 1}</span>
                   )}
@@ -1003,20 +696,6 @@ const ProgressSteps = ({ steps, currentStep }) => {
 
 // Main component
 const DonatePage = () => {
-  // Initialize with default values first
-  const defaultFormData = {
-    medicineName: '',
-    category: '',
-    quantity: '',
-    expiryDate: '',
-    condition: 'new',
-    price: '',
-    isDonation: false,
-    medicineImages: [],
-    description: '',
-    location: ''
-  };
-
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState(defaultFormData);
   const [preview, setPreview] = useState([]);
@@ -1025,22 +704,20 @@ const DonatePage = () => {
 
   // Load saved data from localStorage after component mounts
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedStep = localStorage.getItem('donateFormStep');
-      const savedFormData = localStorage.getItem('donateFormData');
-      const savedPreviews = localStorage.getItem('donateFormPreviews');
+    const savedStep = localStorage.getItem('donateFormStep');
+    const savedFormData = localStorage.getItem('donateFormData');
+    const savedPreviews = localStorage.getItem('donateFormPreviews');
 
-      if (savedStep) {
-        setCurrentStep(parseInt(savedStep));
-      }
-      if (savedFormData) {
-        const parsedData = JSON.parse(savedFormData);
-        setFormData(parsedData);
-        setInitialFormData(parsedData);
-      }
-      if (savedPreviews) {
-        setPreview(JSON.parse(savedPreviews));
-      }
+    if (savedStep) {
+      setCurrentStep(parseInt(savedStep));
+    }
+    if (savedFormData) {
+      const parsedData = JSON.parse(savedFormData);
+      setFormData(parsedData);
+      setInitialFormData(parsedData);
+    }
+    if (savedPreviews) {
+      setPreview(JSON.parse(savedPreviews));
     }
   }, []);
 
