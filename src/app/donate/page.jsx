@@ -760,24 +760,6 @@ const DonatePage = () => {
     return () => clearTimeout(saveTimeout);
   }, [formData, currentStep, preview, isClient]);
 
-  // Add beforeunload event listener
-  useEffect(() => {
-    if (!isClient) return;
-
-    const handleBeforeUnload = (e) => {
-      if (formHasChanges()) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    // Only add event listener if we're in the browser
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }
-  }, [formData, initialFormData, isClient]);
-
   const formHasChanges = () => {
     if (!isClient) return false;
     return JSON.stringify(formData) !== JSON.stringify(initialFormData);
