@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { debounce } from 'lodash';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import getCurrentLocation from '@/utils/getCurrentLocation';
 
 // Fix Leaflet marker icon issue
 const markerIcon = L.icon({
@@ -37,21 +38,7 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
     setIsClient(true);
   }, []);
 
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setPosition([latitude, longitude]);
-          reverseGeocode(latitude, longitude);
-        },
-        (error) => {
-          toast.error('Unable to get location. Please enter manually.');
-          setPosition([0, 0]); // Default position
-        }
-      );
-    }
-  };
+  
 
   const reverseGeocode = async (lat, lng) => {
     try {
@@ -166,7 +153,7 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
             />
             <button
               type="button"
-              onClick={getCurrentLocation}
+              onClick={() => getCurrentLocation(setPosition, reverseGeocode, toast)}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700"
               title="Get current location"
             >
