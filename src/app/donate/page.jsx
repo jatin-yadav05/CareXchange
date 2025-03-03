@@ -17,8 +17,8 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 
 // Dynamically import the LocationDescriptionStep with no SSR
 const LocationDescriptionStep = dynamic(
-  () => import('../components/LocationDescriptionStep'),
-  { ssr: false }
+  () => import('./components/LocationDescriptionStep').then(mod => mod.default),
+  { ssr: false, loading: () => <p>Loading map...</p> }
 );
 
 // Initialize defaultFormData outside of component to avoid window reference

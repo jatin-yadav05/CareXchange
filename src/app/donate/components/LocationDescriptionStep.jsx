@@ -5,29 +5,51 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { debounce } from 'lodash';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Dynamically import map components with no SSR
-const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { 
+  ssr: false,
+  loading: () => <div className="h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">Loading map...</div>
+});
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+
+// Initialize Leaflet icon configuration
+const initializeLeafletIcon = () => {
+  if (typeof window !== 'undefined') {
+    return {
+      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    };
+  }
+  return null;
+};
 
 const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   const [position, setPosition] = useState([20.5937, 78.9629]);
   const [locationPermission, setLocationPermission] = useState('prompt');
   const mapRef = useRef(null);
   const [showLocationButton, setShowLocationButton] = useState(true);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const [isClient, setIsClient] = useState(false);
+  const [customIcon, setCustomIcon] = useState(null);
 
   useEffect(() => {
+    setIsClient(true);
+    if (typeof window !== 'undefined') {
+      const L = require('leaflet');
+      setCustomIcon(new L.Icon(initializeLeafletIcon()));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: 'geolocation' })
         .then((result) => {
@@ -37,10 +59,18 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
           };
         });
     }
-  }, []);
+  }, [isClient]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleCurrentLocation = () => {
-    if (!navigator.geolocation) {
+    if (!isClient || !navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
       return;
     }
@@ -92,7 +122,7 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   };
 
   const centerToCurrentLocation = () => {
-    if (!navigator.geolocation) {
+    if (!isClient || !navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
       return;
     }
@@ -114,16 +144,6 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
       }
     );
   };
-
-  const customIcon = new L.Icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  });
 
   const LocationControl = () => {
     return (
@@ -181,6 +201,21 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
       toast.error('Failed to get address. Please try again later.');
     }
   }, 1000);
+
+  if (!isClient) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        className="space-y-6"
+      >
+        <div className="bg-white p-6 rounded-lg shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Loading location component...</h3>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -247,33 +282,36 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
           </p>
         </div>
 
-        <div className="mb-6 relative">
-          <Map 
-            center={position} 
-            zoom={13} 
-            style={{ height: '300px', width: '100%' }}
-            className="rounded-lg shadow-md z-0"
-            ref={mapRef}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            <Marker 
-              position={position}
-              icon={customIcon}
-              draggable={true}
-              eventHandlers={{
-                dragend: (e) => {
-                  const marker = e.target;
-                  const position = marker.getLatLng();
-                  setPosition([position.lat, position.lng]);
-                  geocodeLocation(position.lat, position.lng);
-                }
-              }}
-            />
-            {showLocationButton && <LocationControl />}
-          </Map>
+        <div className="mb-6 relative h-[400px] rounded-lg overflow-hidden">
+          {Map && (
+            <Map
+              center={position}
+              zoom={13}
+              ref={mapRef}
+              className="h-full w-full"
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              {customIcon && (
+                <Marker
+                  position={position}
+                  icon={customIcon}
+                  draggable={true}
+                  eventHandlers={{
+                    dragend: (e) => {
+                      const marker = e.target;
+                      const position = marker.getLatLng();
+                      setPosition([position.lat, position.lng]);
+                      geocodeLocation(position.lat, position.lng);
+                    },
+                  }}
+                />
+              )}
+              {showLocationButton && <LocationControl />}
+            </Map>
+          )}
         </div>
 
         <div className="mb-6">
@@ -283,17 +321,15 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
           <textarea
             id="description"
             name="description"
+            rows={4}
             value={formData.description}
             onChange={handleInputChange}
-            rows={4}
             className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
-            placeholder="Add any additional details about the medicine..."
+            placeholder="Add any additional details about pickup location or timing"
           />
-          <p className="mt-2 text-sm text-gray-500">
-            Include any special storage requirements or usage instructions
-          </p>
         </div>
 
+        {/* Navigation Buttons */}
         <div className="mt-6 flex justify-between">
           <button
             type="button"
@@ -311,7 +347,7 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
             disabled={!isStepValid()}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Review
+            Continue
             <svg className="ml-2 -mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
