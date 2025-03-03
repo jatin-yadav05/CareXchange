@@ -20,14 +20,13 @@ const markerIcon = L.icon({
   shadowSize: [41, 41]
 });
 
-// Commented out map components
-const Map = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { 
-  ssr: false,
-  loading: () => <div className="h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">Loading map...</div>
-});
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
-const useMapEvents = dynamic(() => import('react-leaflet').then(mod => mod.useMapEvents), { ssr: false });
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+
+const Map = ({ children, ...props }) => (
+  <MapContainer {...props}>
+    {children}
+  </MapContainer>
+);
 
 const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   const [isClient, setIsClient] = useState(false);
