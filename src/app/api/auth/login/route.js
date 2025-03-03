@@ -108,12 +108,21 @@ export async function POST(req) {
         { status: 200 }
       );
 
-      // Set cookie
-      response.cookies.set('token', token, {
+      // Set cookies
+      const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      };
+
+      // Set token cookie
+      response.cookies.set('token', token, cookieOptions);
+      
+      // Set email cookie (allow JavaScript access)
+      response.cookies.set('userEmail', user.email, {
+        ...cookieOptions,
+        httpOnly: false
       });
 
       return response;

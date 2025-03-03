@@ -5,6 +5,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import 'leaflet/dist/leaflet.css';
 import dynamic from 'next/dynamic';
 
@@ -113,72 +115,72 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
             <li>• Avoid glare on the package</li>
             <li>• Include expiry date clearly</li>
           </ul>
-                  </div>
-                  
+        </div>
+        
         {/* Dropzone */}
-                  <div 
-                    {...getRootProps()} 
-                    className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
-                      isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
-                    } border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors`}
-                  >
-                    <div className="space-y-1 text-center">
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <div className="flex flex-col items-center text-sm text-gray-600">
-                        <input {...getInputProps()} />
-                        {isDragActive ? (
-                          <p className="text-primary">Drop the files here ...</p>
-                        ) : (
-                          <>
-                            <p className="font-medium text-primary hover:text-primary-600">
-                              Click to upload or drag and drop
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB each</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+        <div 
+          {...getRootProps()} 
+          className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
+            isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'
+          } border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors`}
+        >
+          <div className="space-y-1 text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              stroke="currentColor"
+              fill="none"
+              viewBox="0 0 48 48"
+              aria-hidden="true"
+            >
+              <path
+                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <div className="flex flex-col items-center text-sm text-gray-600">
+              <input {...getInputProps()} />
+              {isDragActive ? (
+                <p className="text-primary">Drop the files here ...</p>
+              ) : (
+                <>
+                  <p className="font-medium text-primary hover:text-primary-600">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB each</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
 
-                  {/* Image Preview */}
-                  {preview.length > 0 && (
+        {/* Image Preview */}
+        {preview.length > 0 && (
           <div className="mt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Uploaded Images:</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {preview.map((url, index) => (
+              {preview.map((url, index) => (
                 <div key={index} className="relative group">
-                          <img
-                            src={url}
-                            alt={`Preview ${index + 1}`}
+                  <img
+                    src={url}
+                    alt={`Preview ${index + 1}`}
                     className="h-24 w-24 object-cover rounded-lg ring-1 ring-gray-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
             </div>
-                    </div>
-                  )}
+          </div>
+        )}
 
         {/* Next Button */}
         <div className="mt-6 flex justify-end">
@@ -194,7 +196,7 @@ const ImageUploadStep = ({ formData, setFormData, preview, setPreview, onNext })
             </svg>
           </button>
         </div>
-                </div>
+      </div>
     </motion.div>
   );
 };
@@ -236,18 +238,18 @@ const MedicineDetailsStep = ({ formData, setFormData, onNext, onBack }) => {
         <div className="mb-4">
           <label htmlFor="medicineName" className="block text-sm font-medium text-gray-700 mb-1">
             Medicine Name *
-                  </label>
-                  <input
-                    type="text"
+          </label>
+          <input
+            type="text"
             id="medicineName"
             name="medicineName"
             value={formData.medicineName}
-                    onChange={handleInputChange}
-                    required
+            onChange={handleInputChange}
+            required
             className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
             placeholder="Enter medicine name"
-                  />
-                </div>
+          />
+        </div>
 
         {/* Category */}
         <div className="mb-4">
@@ -702,12 +704,35 @@ const ProgressSteps = ({ steps, currentStep }) => {
 
 // Main component
 const DonatePage = () => {
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState(defaultFormData);
   const [preview, setPreview] = useState([]);
   const [initialFormData, setInitialFormData] = useState(defaultFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [isClient, setIsClient] = useState(false);
+
+  // Check authentication on component mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Redirect to login with return URL
+      const returnUrl = encodeURIComponent('/donate');
+      router.push(`/login?returnUrl=${returnUrl}`);
+    }
+  }, [isAuthenticated, router]);
+
+  // If not authenticated, show loading or redirect
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Please log in to continue</h2>
+          <p className="text-gray-600">Redirecting to login page...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Set isClient to true once the component mounts
   useEffect(() => {
@@ -790,18 +815,51 @@ const DonatePage = () => {
 
   const handleSubmit = async () => {
     try {
-      await toast.promise(
-        // Replace with actual API call
-        new Promise((resolve) => setTimeout(resolve, 2000)),
-        {
-          loading: 'Submitting your donation...',
-          success: 'Donation submitted successfully!',
-          error: 'Failed to submit donation. Please try again.',
-        }
-      );
+      // Show loading toast
+      toast.loading('Submitting your donation...');
+
+      // Prepare form data to match schema
+      const donationData = {
+        medicine: formData.medicineName,
+        quantity: parseInt(formData.quantity),
+        expiryDate: formData.expiryDate,
+        condition: formData.condition,
+        description: formData.description || '',
+        location: formData.location,
+        images: [], // We'll handle image upload separately
+      };
+
+      // Submit to API
+      const response = await fetch('/api/donations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important: include credentials for cookies
+        body: JSON.stringify(donationData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.details || 'Failed to submit donation');
+      }
+
+      // Show success message
+      toast.dismiss();
+      toast.success('Donation submitted successfully!');
+
+      // Redirect to medicines page after successful submission
+      router.push('/medicines');
+
+      // Reset form
       resetForm();
+
     } catch (error) {
-      console.error('Error submitting donation:', error);
+      // Show error message
+      toast.dismiss();
+      console.error('Error details:', error);
+      toast.error(error.message || 'Failed to submit donation. Please try again.');
     }
   };
 
