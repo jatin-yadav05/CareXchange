@@ -6,22 +6,34 @@ import { toast } from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { debounce } from 'lodash';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import getCurrentLocation from '@/utils/getCurrentLocation';
 
-// Fix Leaflet marker icon issue
-const markerIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png', 
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41]
-});
+// Dynamically import Leaflet components to avoid SSR issues
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
 
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
+
+const useMapEvents = dynamic(
+  () => import('react-leaflet').then((mod) => mod.useMapEvents),
+  { ssr: false }
+);
+
+// Dynamically import L to avoid SSR issues
+const L = dynamic(
+  () => import('leaflet').then((mod) => mod),
+  { ssr: false }
+);
 
 const Map = ({ children, ...props }) => (
   <MapContainer {...props}>
@@ -33,12 +45,24 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
   const [isClient, setIsClient] = useState(false);
   const [position, setPosition] = useState(null);
   const [address, setAddress] = useState('');
+  const [markerIcon, setMarkerIcon] = useState(null);
 
   useEffect(() => {
     setIsClient(true);
+    // Initialize Leaflet marker icon after component mounts
+    if (typeof window !== 'undefined') {
+      setMarkerIcon(L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        tooltipAnchor: [16, -28],
+        shadowSize: [41, 41]
+      }));
+    }
   }, []);
-
-  
 
   const reverseGeocode = async (lat, lng) => {
     try {
@@ -66,7 +90,7 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
       }
     });
 
-    return position ? (
+    return position && markerIcon ? (
       <Marker 
         position={position}
         icon={markerIcon}
@@ -120,7 +144,7 @@ const LocationDescriptionStep = ({ formData, setFormData, onNext, onBack }) => {
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Location & Additional Details</h3>
 
-        {position && (
+        {position && isClient && (
           <div className="mb-6 h-[400px] relative">
             <Map
               center={position}
