@@ -15,9 +15,11 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
@@ -168,6 +170,10 @@ const ProfilePage = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleRequestClick = () => {
+    router.push('/request');
   };
 
   if (authLoading || loading) {
@@ -496,7 +502,7 @@ const ProfilePage = () => {
                       <ClockIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
                       <p className="text-sm sm:text-lg text-gray-500">No requests yet</p>
                       <button
-                        onClick={() => router.push('/request')}
+                        onClick={handleRequestClick}
                         className="mt-3 sm:mt-4 px-4 sm:px-6 py-2 sm:py-3 bg-primary text-white text-xs sm:text-sm rounded-lg hover:bg-primary-600 transition-all duration-200"
                       >
                         Make Your First Request
